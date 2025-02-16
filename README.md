@@ -1,3 +1,3 @@
-# Well-Tempered Traveler
+# Ill-Tempered Tourist
 
-Repository for this site, currently hosted at [google.com/welltemperedtraveler](https://google.com/welltemperedtraveler).
+Fork of the wonderful Well-Tempered Traveler, since I want to add a few features.  Original site hosted at [google.com/welltemperedtraveler](https://google.com/welltemperedtraveler).
