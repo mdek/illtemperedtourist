@@ -58,7 +58,7 @@ If you have an OpenWeatherMap API key:
 
 Note: This option is in the `old_sources` directory and may need updates.
 
-### Option 3: Bulk Add All Cities Script
+### Option 4: Bulk Add All Cities Script
 
 To refresh data for all cities at once:
 
