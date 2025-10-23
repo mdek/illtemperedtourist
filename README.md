@@ -8,10 +8,22 @@ An interactive web application that helps travelers find cities with pleasant cl
 
 ## Quick Start
 
-1. Open `index.html` in your browser
-2. Search for cities by name, country, or continent
-3. Click month headers to sort cities by most comfortable weather
-4. Hover over cells to see detailed temperature and rainfall data
+**Note:** Due to browser CORS restrictions, you need to run a local web server (opening `index.html` directly won't work).
+
+1. **Start the local server:**
+   ```bash
+   ./serve.sh
+   ```
+
+2. **Open in your browser:**
+   ```
+   http://localhost:8000
+   ```
+
+3. **Use the app:**
+   - Search for cities by name, country, or continent
+   - Click month headers to sort cities by most comfortable weather
+   - Hover over cells to see detailed temperature and rainfall data
 
 ## Adding Cities
 
