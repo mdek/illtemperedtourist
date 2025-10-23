@@ -30,7 +30,18 @@
    grep "^Beirut" data.txt
    ```
 
-### Option 2: Use OpenWeatherMap API
+### Option 2: Use Open-Meteo API (Recommended if NOAA doesn't have your city)
+
+Open-Meteo is free and doesn't require an API key. Great for cities not in NOAA dataset.
+
+```bash
+cd /home/user/illtemperedtourist
+./refresh_data_openmeteo "Beirut|LB"
+```
+
+This works for ANY city in cities.txt with coordinates in latlng.txt.
+
+### Option 3: Use OpenWeatherMap API
 
 If you have an OpenWeatherMap API key:
 

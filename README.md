@@ -30,9 +30,16 @@ This interactive script will guide you through adding a new city.
    ./download_noaa_data.sh
    ```
 
-2. **Add a specific city** (e.g., Beirut):
+2. **Add a specific city**:
+
+   For cities in NOAA dataset:
    ```bash
    ./refresh_data_ncei "Beirut|LB"
+   ```
+
+   For cities NOT in NOAA (or as alternative):
+   ```bash
+   ./refresh_data_openmeteo "Beirut|LB"
    ```
 
 3. **Refresh all cities**:
