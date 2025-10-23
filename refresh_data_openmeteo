@@ -1,0 +1,167 @@
+#!/usr/bin/python3
+"""
+Fetch historical weather data from Open-Meteo API
+Open-Meteo is free and doesn't require an API key
+API docs: https://open-meteo.com/en/docs/historical-weather-api
+"""
+
+import json
+import sys
+import urllib.request
+import urllib.error
+from datetime import datetime, timedelta
+
+from util import read_existing_data, read_cities, write_out
+
+def fetch_weather_data(city, country_code, lat, lng):
+    """Fetch 10 years of historical weather data from Open-Meteo"""
+
+    # Calculate date range (last 10 complete years)
+    end_date = datetime.now().replace(month=12, day=31, year=datetime.now().year - 1)
+    start_date = end_date.replace(year=end_date.year - 9, month=1, day=1)
+
+    url = (
+        f"https://archive-api.open-meteo.com/v1/archive?"
+        f"latitude={lat}&longitude={lng}&"
+        f"start_date={start_date.strftime('%Y-%m-%d')}&"
+        f"end_date={end_date.strftime('%Y-%m-%d')}&"
+        f"daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum&"
+        f"timezone=auto"
+    )
+
+    print(f"  Fetching from Open-Meteo API...")
+
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            data = json.loads(response.read().decode())
+            return data
+    except urllib.error.HTTPError as e:
+        print(f"  ERROR: HTTP {e.code} - {e.reason}")
+        return None
+    except Exception as e:
+        print(f"  ERROR: {e}")
+        return None
+
+def aggregate_by_month(daily_data):
+    """Aggregate daily data into monthly averages"""
+
+    dates = daily_data['daily']['time']
+    temp_min = daily_data['daily']['temperature_2m_min']
+    temp_mean = daily_data['daily']['temperature_2m_mean']
+    temp_max = daily_data['daily']['temperature_2m_max']
+    precip = daily_data['daily']['precipitation_sum']
+
+    # Group by month and calculate averages
+    monthly = {}
+    for i, date_str in enumerate(dates):
+        year_month = date_str[:7]  # YYYY-MM
+        month_only = date_str[5:7]  # MM
+
+        if month_only not in monthly:
+            monthly[month_only] = {
+                'temp_min': [],
+                'temp_mean': [],
+                'temp_max': [],
+                'precip': []
+            }
+
+        # Skip null values
+        if temp_min[i] is not None:
+            monthly[month_only]['temp_min'].append(temp_min[i])
+        if temp_mean[i] is not None:
+            monthly[month_only]['temp_mean'].append(temp_mean[i])
+        if temp_max[i] is not None:
+            monthly[month_only]['temp_max'].append(temp_max[i])
+        if precip[i] is not None:
+            monthly[month_only]['precip'].append(precip[i])
+
+    # Calculate monthly averages
+    result = {}
+    for month in range(1, 13):
+        month_key = str(month)
+        month_str = f"{month:02d}"
+
+        if month_str in monthly:
+            data = monthly[month_str]
+            result[month_key] = [
+                round(sum(data['temp_min']) / len(data['temp_min'])) if data['temp_min'] else -9999,
+                round(sum(data['temp_mean']) / len(data['temp_mean'])) if data['temp_mean'] else -9999,
+                round(sum(data['temp_max']) / len(data['temp_max'])) if data['temp_max'] else -9999,
+                round(sum(data['precip']) / len(data['precip'])) if data['precip'] else -9999,
+            ]
+        else:
+            result[month_key] = [-9999, -9999, -9999, -9999]
+
+    return result
+
+def refresh_city(DATA, city_entry):
+    """Refresh weather data for a single city"""
+
+    parts = city_entry.split("|")
+    if len(parts) != 2:
+        print(f"ERROR: Invalid city entry format: {city_entry}")
+        return False
+
+    city, country_code = parts
+    print(f"\n{'='*60}")
+    print(f"Processing: {city}, {country_code}")
+    print(f"{'='*60}")
+
+    # Read coordinates from latlng.txt
+    lat, lng = None, None
+    with open("latlng.txt", "r") as f:
+        for line in f:
+            if line.startswith(city_entry + "|"):
+                coords = line.strip().split("|")[2]
+                lat, lng = coords.split(",")
+                break
+
+    if not lat or not lng:
+        print(f"  ERROR: No coordinates found in latlng.txt")
+        return False
+
+    print(f"  Coordinates: {lat}, {lng}")
+
+    # Fetch data from Open-Meteo
+    raw_data = fetch_weather_data(city, country_code, lat, lng)
+    if not raw_data:
+        return False
+
+    # Aggregate into monthly data
+    monthly_data = aggregate_by_month(raw_data)
+
+    # Check for missing data
+    missing_count = sum(1 for month in monthly_data.values()
+                       for val in month if val == -9999)
+
+    print(f"  Missing data points: {missing_count}")
+
+    if missing_count < 5:
+        DATA[city_entry] = monthly_data
+        print(f"  ✓ Successfully updated data")
+        return True
+    else:
+        print(f"  ✗ Too much missing data, not updating")
+        return False
+
+def main():
+    city_entry = None
+    if len(sys.argv) > 1:
+        city_entry = sys.argv[1]
+
+    DATA = read_existing_data()
+
+    if city_entry:
+        # Refresh specific city
+        success = refresh_city(DATA, city_entry)
+        if success:
+            write_out(DATA, "data.txt")
+            print(f"\n✓ Data file updated successfully")
+        else:
+            print(f"\n✗ Failed to update data")
+    else:
+        print("Usage: ./refresh_data_openmeteo \"City|CC\"")
+        print("Example: ./refresh_data_openmeteo \"Beirut|LB\"")
+
+if __name__ == "__main__":
+    main()
