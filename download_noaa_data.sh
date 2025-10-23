@@ -45,6 +45,7 @@ fi
 
 echo ""
 echo "Extracting data..."
+# Extract directly - the tar already contains gsom-latest/ directory structure
 tar -xzf gsom-latest.tar.gz
 
 # Count extracted files
